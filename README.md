@@ -148,15 +148,12 @@ A powerful, web-based PDF editor and converter that allows users to view, edit, 
 
 ## 🏗️ Tech Stack
 
-*(Update this based on what you’re using)*
-
-- **Frontend:** React / Next.js / Vue
-- **Backend:** Node.js / Python (FastAPI)
+- **Frontend:** React 
+- **Backend:**  Python (FastAPI)
 - **PDF Engine:** PDF.js, PDF-lib, or similar
-- **OCR:** Tesseract / Cloud OCR
-- **AI:** OpenAI / Local LLMs
-- **Storage:** AWS S3 / Local Storage
-- **Auth:** JWT / OAuth
+- **AI:** Local LLMs
+- **Storage:**  Local Storage
+- **Auth:** OAuth
 
 ---
 
