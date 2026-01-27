@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -176,6 +177,9 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="pdf-actions">
+                <Link to={`/pdf/${pdf.id}`} className="btn btn-primary btn-sm">
+                  View
+                </Link>
                 <button
                   onClick={() => handleDelete(pdf.id)}
                   className="btn btn-danger btn-sm"

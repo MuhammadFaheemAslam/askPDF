@@ -77,8 +77,11 @@ body {
   color: var(--gray-700);
   background: var(--gray-100);
   min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+  overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 #root {

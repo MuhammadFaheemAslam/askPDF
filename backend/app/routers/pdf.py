@@ -2,10 +2,16 @@ import os
 import uuid
 from typing import List
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from ..auth import get_current_user
+from typing import Optional
+
+from jose import JWTError, jwt
+
+from ..auth import get_current_user, get_user_by_username
+from ..config import SECRET_KEY, ALGORITHM
 from ..config import PDF_DIR
 from ..database import get_db
 from ..models import PDF, User
@@ -92,3 +98,80 @@ def delete_pdf(
     # Delete from database
     db.delete(pdf)
     db.commit()
+
+
+@router.get("/{pdf_id}", response_model=PDFResponse)
+def get_pdf(
+    pdf_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get single PDF metadata"""
+    pdf = db.query(PDF).filter(PDF.id == pdf_id, PDF.owner_id == current_user.id).first()
+    if not pdf:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="PDF not found",
+        )
+    return pdf
+
+
+@router.get("/{pdf_id}/view")
+def view_pdf(
+    pdf_id: int,
+    token: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """Stream PDF file with authentication via query parameter"""
+    # Verify token
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token",
+            )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )
+
+    # Get user
+    user = get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+
+    # Get PDF with ownership check
+    pdf = db.query(PDF).filter(PDF.id == pdf_id, PDF.owner_id == user.id).first()
+    if not pdf:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="PDF not found",
+        )
+
+    if not os.path.exists(pdf.filepath):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="PDF file not found on disk",
+        )
+
+    return FileResponse(
+        pdf.filepath,
+        media_type="application/pdf",
+        filename=pdf.filename,
+        headers={
+            "Content-Disposition": f"inline; filename=\"{pdf.filename}\"",
+            "Cache-Control": "private, max-age=3600",
+        }
+    )
